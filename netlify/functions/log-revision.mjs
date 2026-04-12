@@ -1,10 +1,11 @@
 export const config = { path: "/api/log-revision" };
 
-// Build and sign a JWT for Google service account auth
 async function getAccessToken() {
   const email = Netlify.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL");
   const rawKey = Netlify.env.get("GOOGLE_PRIVATE_KEY");
-  const privateKey = rawKey.replace(/\\n/g, "\n");
+  if (!rawKey) throw new Error("GOOGLE_PRIVATE_KEY not set");
+  if (!email) throw new Error("GOOGLE_SERVICE_ACCOUNT_EMAIL not set");
+  const privateKey = rawKey.includes("\\n") ? rawKey.replace(/\\n/g, "\n") : rawKey;
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -56,7 +57,6 @@ async function getAccessToken() {
 }
 
 export default async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
