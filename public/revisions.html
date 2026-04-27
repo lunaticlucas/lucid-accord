@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revision Ledger — The Lucid Accord</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IBM+Plex+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f0e8d4;
+    --paper-dark: #e4d9c0;
+    --ink: #180f04;
+    --ink-mid: #3a2810;
+    --ink-light: #7a6040;
+    --ink-faint: #b8a07a;
+    --rule: #c8b090;
+    --accept: #1a5c2a;
+    --accept-bg: #d4f0dc;
+    --reject: #7a1010;
+    --reject-bg: #f8d8d8;
+    --pending: #7a5000;
+    --pending-bg: #f8e8c0;
+    --discuss: #1a3a7a;
+    --discuss-bg: #d4e0f8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Lora', serif;
+    min-height: 100vh;
+  }
+
+  /* Paper lines */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      transparent, transparent 31px,
+      rgba(184,160,120,0.12) 31px, rgba(184,160,120,0.12) 32px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    border-bottom: 4px double var(--ink);
+    padding: 32px 60px 24px;
+    position: relative;
+    z-index: 1;
+    background: var(--paper);
+  }
+
+  .masthead-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .masthead-left {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-light);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  .masthead-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+    text-align: center;
+    flex: 1;
+    padding: 0 40px;
+  }
+
+  .masthead-right {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-light);
+    letter-spacing: 0.12em;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .masthead-rule {
+    border: none;
+    border-top: 1px solid var(--ink);
+    margin: 12px 0;
+  }
+
+  .masthead-sub {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mid);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .masthead-nav {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 12px;
+  }
+
+  .masthead-nav a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-light);
+    text-decoration: none;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .masthead-nav a:hover { color: var(--ink); }
+
+  /* STATS BAR */
+  .stats-bar {
+    border-bottom: 1px solid var(--ink);
+    padding: 12px 60px;
+    display: flex;
+    gap: 40px;
+    background: var(--ink);
+    color: var(--paper);
+    position: relative;
+    z-index: 1;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .stat-num {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--paper);
+  }
+
+  .stat-label {
+    color: rgba(240,232,212,0.5);
+    text-transform: uppercase;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+  }
+
+  .stat-divider { color: rgba(240,232,212,0.2); }
+
+  /* FILTER BAR */
+  .filter-bar {
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 60px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    background: var(--paper-dark);
+  }
+
+  .filter-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-right: 8px;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 5px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .filter-btn.accept.active { background: var(--accept); border-color: var(--accept); }
+  .filter-btn.reject.active { background: var(--reject); border-color: var(--reject); }
+  .filter-btn.pending.active { background: var(--pending); border-color: var(--pending); }
+  .filter-btn.discuss.active { background: var(--discuss); border-color: var(--discuss); }
+
+  /* MAIN CONTENT */
+  .content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 80px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .loading-dots span {
+    animation: blink 1.2s ease infinite;
+    display: inline-block;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+  /* ENTRY */
+  .entry {
+    border-bottom: 1px solid var(--rule);
+    padding: 36px 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+    animation: entryIn 0.4s ease;
+  }
+
+  @keyframes entryIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry.hidden { display: none; }
+
+  .entry-left { flex: 1; }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .entry-tenet {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-light);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid var(--rule);
+    padding: 3px 10px;
+  }
+
+  .entry-alias {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+  }
+
+  .entry-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    margin-left: auto;
+  }
+
+  .entry-summary {
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--ink);
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+
+  .entry-reasoning {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-mid);
+    padding: 12px 16px;
+    border-left: 3px solid var(--rule);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+  }
+
+  .entry-reasoning strong {
+    color: var(--ink);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* VERDICT STAMP */
+  .verdict-stamp {
+    flex-shrink: 0;
+    width: 100px;
+    text-align: center;
+    padding: 12px 8px;
+    border: 3px solid;
+    transform: rotate(2deg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    position: relative;
+    top: 8px;
+  }
+
+  .verdict-stamp::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1px solid currentColor;
+    opacity: 0.3;
+  }
+
+  .verdict-stamp.ACCEPT {
+    color: var(--accept);
+    border-color: var(--accept);
+    background: var(--accept-bg);
+    transform: rotate(-2deg);
+  }
+
+  .verdict-stamp.REJECT {
+    color: var(--reject);
+    border-color: var(--reject);
+    background: var(--reject-bg);
+    transform: rotate(3deg);
+  }
+
+  .verdict-stamp.PENDING {
+    color: var(--pending);
+    border-color: var(--pending);
+    background: var(--pending-bg);
+    transform: rotate(-1deg);
+  }
+
+  .verdict-stamp.NEEDS_DISCUSSION {
+    color: var(--discuss);
+    border-color: var(--discuss);
+    background: var(--discuss-bg);
+    transform: rotate(2deg);
+    font-size: 9px;
+  }
+
+  .verdict-date {
+    font-size: 8px;
+    display: block;
+    margin-top: 6px;
+    opacity: 0.6;
+    letter-spacing: 0.1em;
+  }
+
+  /* REVIEW BUTTON */
+  .review-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 12px;
+    display: inline-block;
+    transition: opacity 0.2s;
+  }
+
+  .review-btn:hover { opacity: 0.8; }
+  .review-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 80px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ERROR */
+  .error-state {
+    text-align: center;
+    padding: 60px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--reject);
+    letter-spacing: 0.1em;
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 4px double var(--ink);
+    padding: 24px 60px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 600px) {
+    .masthead { padding: 20px 20px 16px; }
+    .masthead-left, .masthead-right { display: none; }
+    .stats-bar { padding: 12px 20px; gap: 20px; flex-wrap: wrap; }
+    .filter-bar { padding: 10px 20px; flex-wrap: wrap; }
+    .content { padding: 28px 20px; }
+    .entry { grid-template-columns: 1fr; }
+    .verdict-stamp { width: auto; transform: none !important; display: inline-block; }
+    .footer { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <div class="masthead-left">
+      The Lucid Accord<br>
+      Est. April 2026<br>
+      Version 0.1 — Living Document
+    </div>
+    <h1 class="masthead-title">Revision<br>Ledger</h1>
+    <div class="masthead-right">
+      Public Record<br>
+      AI-Reviewed<br>
+      Fully Auditable
+    </div>
+  </div>
+  <hr class="masthead-rule">
+  <p class="masthead-sub">A transparent log of all proposed amendments to the Lucid Accord — pending, accepted, and rejected</p>
+  <nav class="masthead-nav">
+    <a href="index.html">← Foundation Document</a>
+    <a href="vera.html">Speak with Vera</a>
+  </nav>
+</header>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat">
+    <span class="stat-num" id="totalCount">—</span>
+    <span class="stat-label">Total<br>Proposals</span>
+  </div>
+  <span class="stat-divider">|</span>
+  <div class="stat">
+    <span class="stat-num" id="acceptCount">—</span>
+    <span class="stat-label">Accepted</span>
+  </div>
+  <span class="stat-divider">|</span>
+  <div class="stat">
+    <span class="stat-num" id="rejectCount">—</span>
+    <span class="stat-label">Rejected</span>
+  </div>
+  <span class="stat-divider">|</span>
+  <div class="stat">
+    <span class="stat-num" id="pendingCount">—</span>
+    <span class="stat-label">Pending<br>Review</span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Filter:</span>
+  <button class="filter-btn active" onclick="setFilter('ALL', this)">All</button>
+  <button class="filter-btn accept" onclick="setFilter('ACCEPT', this)">Accepted</button>
+  <button class="filter-btn reject" onclick="setFilter('REJECT', this)">Rejected</button>
+  <button class="filter-btn pending" onclick="setFilter('PENDING', this)">Pending</button>
+  <button class="filter-btn discuss" onclick="setFilter('NEEDS_DISCUSSION', this)">Discussion</button>
+</div>
+
+<main class="content" id="content">
+  <div class="loading">
+    Loading revision ledger
+    <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+  </div>
+</main>
+
+<footer class="footer">
+  The Lucid Accord · Revision Ledger · All proposals reviewed by AI · Open Record · No Rights Reserved
+</footer>
+
+<script>
+let allRevisions = [];
+let currentFilter = 'ALL';
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return iso; }
+}
+
+function verdictLabel(v) {
+  const map = { ACCEPT: 'Accepted', REJECT: 'Rejected', PENDING: 'Pending', NEEDS_DISCUSSION: 'Needs Discussion' };
+  return map[v] || v;
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRevisions();
+}
+
+function updateStats(revisions) {
+  document.getElementById('totalCount').textContent = revisions.length;
+  document.getElementById('acceptCount').textContent = revisions.filter(r => r.verdict === 'ACCEPT').length;
+  document.getElementById('rejectCount').textContent = revisions.filter(r => r.verdict === 'REJECT').length;
+  document.getElementById('pendingCount').textContent = revisions.filter(r => r.verdict === 'PENDING' || !r.verdict).length;
+}
+
+async function triggerReview(rowIndex, summary, tenet, conversation, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Reviewing…';
+
+  try {
+    const res = await fetch('/api/review-revision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rowIndex, summary, tenet, conversation })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = `✓ ${verdictLabel(data.review.verdict)}`;
+      // Reload after short delay
+      setTimeout(() => loadRevisions(), 1500);
+    } else {
+      btn.textContent = `Error: ${data.error}`;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = `Error: ${err.message}`;
+    btn.disabled = false;
+  }
+}
+
+function renderRevisions() {
+  const content = document.getElementById('content');
+  const filtered = currentFilter === 'ALL'
+    ? allRevisions
+    : allRevisions.filter(r => (r.verdict || 'PENDING') === currentFilter);
+
+  if (filtered.length === 0) {
+    content.innerHTML = `<div class="empty">No ${currentFilter === 'ALL' ? '' : currentFilter.toLowerCase() + ' '}proposals yet</div>`;
+    return;
+  }
+
+  content.innerHTML = filtered.map((r, i) => {
+    const verdict = r.verdict || 'PENDING';
+    const isPending = verdict === 'PENDING';
+    const reasoningHtml = r.reasoning
+      ? `<div class="entry-reasoning"><strong>AI Review Reasoning</strong>${r.reasoning}</div>`
+      : isPending
+        ? `<div class="entry-reasoning" style="opacity:0.5"><strong>Awaiting Review</strong>This proposal has not yet been reviewed by the AI system.</div>`
+        : '';
+
+    const reviewBtn = isPending
+      ? `<button class="review-btn" onclick="triggerReview(${r.rowIndex}, this.closest('.entry').dataset.summary, '${(r.tenet || '').replace(/'/g, "\\'")}', '', this)">Request AI Review →</button>`
+      : '';
+
+    return `
+      <div class="entry ${currentFilter !== 'ALL' && verdict !== currentFilter ? 'hidden' : ''}" data-verdict="${verdict}" data-summary="${(r.summary || '').replace(/"/g, '&quot;')}">
+        <div class="entry-left">
+          <div class="entry-header">
+            <span class="entry-tenet">${r.tenet || 'General'}</span>
+            <span class="entry-alias">— ${r.alias || 'Anonymous'}</span>
+            <span class="entry-date">${formatDate(r.timestamp)}</span>
+          </div>
+          <p class="entry-summary">"${r.summary || 'No summary provided.'}"</p>
+          ${reasoningHtml}
+          ${reviewBtn}
+        </div>
+        <div class="verdict-stamp ${verdict}">${verdictLabel(verdict)}<span class="verdict-date">${formatDate(r.reviewedAt)}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadRevisions() {
+  try {
+    const res = await fetch('/api/get-revisions');
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    allRevisions = (data.revisions || []).reverse(); // newest first
+    updateStats(data.revisions || []);
+    renderRevisions();
+
+  } catch (err) {
+    document.getElementById('content').innerHTML =
+      `<div class="error-state">Failed to load revisions: ${err.message}</div>`;
+  }
+}
+
+loadRevisions();
+// Auto-refresh every 60 seconds
+setInterval(loadRevisions, 60000);
+</script>
+</body>
+</html>
