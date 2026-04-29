@@ -619,6 +619,7 @@
     .input-area { padding: 16px 20px; }
   }
 </style>
+<script src="https://www.paypal.com/sdk/js?client-id=BAADkk8R5n4d7rLJRg1bNllg5_vXx9VSx0vrEBXjLQmdwu6EhlPr5fyYFrQGmZbipT540-QzcZdYHUMd1s&components=hosted-buttons&enable-funding=venmo&currency=USD"></script>
 </head>
 <body>
 
@@ -660,6 +661,10 @@
   <div class="sidebar-footer">
     <a href="index.html" class="accord-link">← The Lucid Accord · Foundation Document</a>
     <a href="revisions.html" class="accord-link" style="margin-top:8px;">⟨ Revision Ledger ⟩</a>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(242,234,216,0.08);">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(242,234,216,0.3);letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:10px;">Support the Accord</span>
+      <div id="paypal-container-W75DGD6N225WQ"></div>
+    </div>
   </div>
 </aside>
 
@@ -1057,6 +1062,9 @@ Always reason from the Accord's tenets. Be intellectually honest. Acknowledge wh
   btn.disabled = false;
   input.focus();
 }
+</script>
+<script>
+  paypal.HostedButtons({ hostedButtonId: "W75DGD6N225WQ" }).render("#paypal-container-W75DGD6N225WQ");
 </script>
 </body>
 </html>
